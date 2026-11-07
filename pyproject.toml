@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-trader"
+version = "0.1.0"
+description = "Local paper backtesting UI for an opening-range breakout strategy"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2,<3",
+    "plotly>=5.24,<7",
+    "streamlit>=1.40,<2",
+]
+
+[dependency-groups]
+dev = ["black>=24.10"]
+
+[tool.black]
+line-length = 88
+
+[tool.setuptools]
+py-modules = ["strategy"]
