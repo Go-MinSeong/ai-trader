@@ -1,25 +1,28 @@
 # AI Trader
 
-미국 주식의 장 초반 가격 범위 돌파(ORB) 전략을 **가상 자금으로 백테스트**하는 로컬 웹 UI입니다. 실제 증권 계좌나 브로커에는 연결하지 않습니다.
+미국 주식의 장 초반 가격 범위 돌파(ORB) 전략을 **가상 자금으로 백테스트**하는 macOS 데스크톱 앱입니다. 브라우저를 열거나 로컬 웹 서버를 띄우지 않습니다. 실제 증권 계좌/주문 기능은 없습니다.
 
 ## 실행
 
 ```bash
-uv venv
-uv pip install -e .
-uv run streamlit run app.py --server.address 127.0.0.1
+uv sync --dev
+uv run python desktop.py
 ```
 
-브라우저에서 Streamlit이 안내하는 로컬 주소를 여세요. 설치 없이 화면을 확인하려면 왼쪽에서 `합성 예시 데이터`를 선택할 수 있습니다. 이 데이터는 임의로 만든 동작 확인용 데이터라 전략 성과 판단에 사용할 수 없습니다.
+데스크톱 창에서 `데이터 소스 연결`을 선택하세요. 앱은 화면과 Python 사이에 PyWebView 브리지를 쓰며 HTTP 서버를 시작하지 않습니다.
 
-실제 전략 검토에는 직접 준비한 미국 정규장 5분봉 CSV를 올리세요. `examples/synthetic_5m.csv`와 같은 형식입니다.
+배포용 macOS 앱 번들은 다음으로 만듭니다.
 
-```csv
-timestamp,open,high,low,close,volume
-2026-01-05 09:30,100,101,99,100,12000
+```bash
+bash packaging/build.sh
+open "dist/AI Trader.app"
 ```
 
-시간대 정보가 없는 timestamp는 미국 동부시간으로 해석합니다. 입력은 한 티커의 정규장 5분봉을 권장하며, 행 순서와 무관하게 시간순 정렬됩니다.
+## 시장 데이터
+
+데이터 연결 창에서 Yahoo Finance(키 없는 비공식 5분봉) 또는 Alpaca Market Data(API 키 필요)를 선택할 수 있습니다. 반복 개선 중 실제 자동 수집과 캐시 연결을 추가합니다. 데이터 공급자와 feed의 범위는 결과에 표시합니다.
+
+Yahoo Finance는 비공식이며 제한·지연·스키마 변경이 생길 수 있습니다. Alpaca 무료 IEX feed는 미국 전체 거래량을 포함하지 않습니다.
 
 ## 계산 규칙
 

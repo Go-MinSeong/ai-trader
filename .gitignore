@@ -5,3 +5,8 @@ __pycache__/
 .DS_Store
 .streamlit/secrets.toml
 *.egg-info/
+assets/app_icon.png
+assets/app_icon.icns
+dist/
+build/
+AI Trader.spec

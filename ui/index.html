@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI Trader</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --canvas: #f5f5f7; --surface: #fff; --ink: #1d1d1f;
+      --muted: #77777d; --line: #e7e7eb; --blue: #0066cc;
+      --green: #16825d; --red: #c94343; --shadow: 0 2px 8px #1d1d1f0a;
+      font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --canvas:#111113; --surface:#1d1d20; --ink:#f5f5f7; --muted:#a1a1a8; --line:#303035; --blue:#2997ff; --green:#56c596; --red:#ff6969; --shadow:0 2px 8px #0005; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; color:var(--ink); background:var(--canvas); }
+    button, input, select { font:inherit; }
+    button { cursor:pointer; }
+    .shell { display:grid; grid-template-columns:236px minmax(0,1fr); min-height:100vh; }
+    aside { padding:22px 14px; border-right:1px solid var(--line); background:var(--surface); }
+    .brand { display:flex; align-items:center; gap:11px; padding:2px 10px 28px; font-size:16px; font-weight:650; letter-spacing:-.3px; }
+    .brand-mark { width:31px; height:31px; border-radius:10px; display:grid; place-items:center; color:#fff; background:linear-gradient(145deg,#3688ed,#5b55d6); box-shadow:0 3px 9px #0066cc35; }
+    .brand-mark svg { width:19px; height:19px; }
+    .side-label { padding:14px 10px 7px; color:var(--muted); font-size:10px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; }
+    .nav { display:grid; gap:4px; }
+    .nav button { display:flex; align-items:center; gap:11px; min-height:42px; padding:0 11px; border:0; border-radius:11px; color:var(--muted); background:transparent; text-align:left; }
+    .nav button:hover { background:var(--canvas); color:var(--ink); }
+    .nav button.active { color:var(--blue); background:color-mix(in srgb,var(--blue) 10%,var(--surface)); font-weight:600; }
+    .nav-icon { width:18px; text-align:center; font-size:16px; }
+    .aside-bottom { position:fixed; bottom:18px; width:206px; padding:13px 11px; border:1px solid var(--line); border-radius:13px; color:var(--muted); background:var(--surface); font-size:11px; }
+    .aside-bottom b { color:var(--ink); font-weight:600; }
+    main { min-width:0; padding:29px clamp(24px,4vw,62px) 60px; max-width:1800px; width:100%; margin:0 auto; }
+    .top { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:27px; }
+    .eyebrow { color:var(--muted); font-size:12px; font-weight:600; letter-spacing:.02em; }
+    h1 { margin:3px 0 0; font-size:30px; line-height:1.15; font-weight:650; letter-spacing:-.8px; text-wrap:balance; }
+    .top-actions { display:flex; align-items:center; gap:9px; }
+    .source-pill { display:inline-flex; align-items:center; gap:7px; padding:8px 11px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:var(--surface); font-size:11px; }
+    .dot { width:7px; height:7px; border-radius:50%; background:#c6c6cb; }
+    .dot.ok { background:var(--green); }
+    .btn { min-height:40px; padding:0 16px; border:0; border-radius:999px; color:white; background:var(--blue); font-weight:600; transition:transform .12s ease,filter .15s ease; }
+    .btn:hover { filter:brightness(1.06); }
+    .btn:active { transform:scale(.96); }
+    .btn:focus-visible, input:focus-visible, select:focus-visible { outline:2px solid #0071e3; outline-offset:2px; }
+    .btn.secondary { color:var(--ink); background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); }
+    .welcome { display:grid; grid-template-columns:1fr auto; align-items:center; gap:22px; padding:26px 29px; border:1px solid var(--line); border-radius:20px; background:var(--surface); box-shadow:var(--shadow); }
+    .welcome h2 { margin:0 0 7px; font-size:19px; letter-spacing:-.35px; }
+    .welcome p { max-width:700px; margin:0; color:var(--muted); line-height:1.6; }
+    .welcome-art { width:108px; height:84px; display:grid; place-items:center; color:#8eb9ec; background:linear-gradient(135deg,#eff6ff,#f2f0ff); border-radius:17px; }
+    .welcome-art svg { width:75px; height:60px; }
+    .section-head { display:flex; justify-content:space-between; align-items:end; margin:26px 0 12px; }
+    .section-head h2 { margin:0; font-size:16px; font-weight:650; letter-spacing:-.25px; }
+    .section-head span { color:var(--muted); font-size:11px; }
+    .metrics { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:12px; }
+    .metric { min-height:110px; padding:17px 18px; border:1px solid var(--line); border-radius:16px; background:var(--surface); box-shadow:var(--shadow); }
+    .metric .label { color:var(--muted); font-size:11px; }
+    .metric .value { margin-top:13px; font-size:22px; font-weight:650; letter-spacing:-.5px; }
+    .metric .delta { margin-top:2px; color:var(--muted); font-size:10px; }
+    .metric .value.positive { color:var(--green); }
+    .metric .value.negative { color:var(--red); }
+    .grid-main { display:grid; grid-template-columns:minmax(0,1.75fr) minmax(275px,.85fr); gap:14px; margin-top:14px; }
+    .card { min-width:0; padding:19px 20px; border:1px solid var(--line); border-radius:17px; background:var(--surface); box-shadow:var(--shadow); }
+    .card-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .card h3 { margin:0; font-size:13px; font-weight:650; }
+    .card-sub { color:var(--muted); font-size:10px; }
+    .chart-empty { height:205px; display:grid; place-items:center; color:var(--muted); text-align:center; }
+    .chart-empty .chart-icon { display:block; margin-bottom:8px; color:#aab2bd; font-size:25px; }
+    canvas { display:block; width:100%; height:205px; }
+    .review-list { display:grid; gap:13px; margin-top:18px; }
+    .review-row { display:grid; grid-template-columns:30px 1fr auto; align-items:center; gap:10px; }
+    .agent-icon { width:30px; height:30px; display:grid; place-items:center; border-radius:10px; color:var(--blue); background:color-mix(in srgb,var(--blue) 10%,var(--surface)); font-size:14px; }
+    .review-row b { display:block; font-size:11px; font-weight:600; }
+    .review-row small { color:var(--muted); font-size:10px; }
+    .badge { padding:4px 7px; border-radius:999px; color:var(--muted); background:var(--canvas); font-size:9px; font-weight:600; }
+    .badge.ready { color:var(--green); background:color-mix(in srgb,var(--green) 10%,var(--surface)); }
+    .table-card { margin-top:14px; padding:0; overflow:hidden; }
+    .table-head { display:flex; justify-content:space-between; align-items:center; padding:18px 20px; border-bottom:1px solid var(--line); }
+    .table-head h3 { margin:0; font-size:13px; }
+    .table-empty { padding:27px 20px; color:var(--muted); font-size:11px; text-align:center; }
+    .footnote { margin:17px 2px; color:var(--muted); font-size:10px; line-height:1.55; }
+    .modal-backdrop { position:fixed; inset:0; z-index:5; display:none; align-items:center; justify-content:center; padding:20px; background:#10101485; backdrop-filter:blur(7px); }
+    .modal-backdrop.open { display:flex; }
+    .modal { width:min(540px,100%); padding:25px; border:1px solid var(--line); border-radius:21px; background:var(--surface); box-shadow:0 24px 90px #0003; }
+    .modal-top { display:flex; justify-content:space-between; align-items:start; gap:12px; }
+    .modal h2 { margin:0; font-size:20px; letter-spacing:-.4px; }
+    .modal p { margin:7px 0 20px; color:var(--muted); font-size:12px; line-height:1.55; }
+    .close { width:34px; height:34px; border:0; border-radius:50%; color:var(--muted); background:var(--canvas); font-size:17px; }
+    .field { margin:14px 0; }
+    .field label { display:block; margin-bottom:6px; font-size:11px; font-weight:600; }
+    input, select { width:100%; min-height:40px; padding:0 12px; border:1px solid var(--line); border-radius:10px; color:var(--ink); background:var(--surface); }
+    .provider-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .provider { padding:13px; border:1px solid var(--line); border-radius:13px; background:var(--surface); text-align:left; }
+    .provider.selected { border:2px solid var(--blue); padding:12px; }
+    .provider b { display:block; margin-bottom:4px; font-size:12px; }
+    .provider small { color:var(--muted); font-size:10px; line-height:1.45; }
+    .modal-actions { display:flex; justify-content:end; gap:8px; margin-top:20px; }
+    .hint { color:var(--muted); font-size:10px; line-height:1.55; }
+    .alert { margin-top:13px; padding:10px 12px; border-radius:10px; color:var(--muted); background:var(--canvas); font-size:10px; line-height:1.55; }
+    .toast { position:fixed; right:23px; bottom:20px; z-index:10; max-width:360px; padding:12px 15px; border-radius:12px; color:white; background:#252527; box-shadow:0 6px 24px #0003; font-size:11px; opacity:0; transform:translateY(8px); transition:opacity .18s ease,transform .18s ease; pointer-events:none; }
+    .toast.show { opacity:1; transform:translateY(0); }
+    @media(max-width:1100px) { .metrics { grid-template-columns:repeat(3,1fr); } .grid-main { grid-template-columns:1fr; } }
+    @media(max-width:760px) { .shell { grid-template-columns:62px minmax(0,1fr); } aside { padding:17px 8px; } .brand { justify-content:center; padding:2px 0 22px; } .brand-name,.side-label,.nav-text,.aside-bottom { display:none; } .nav button { justify-content:center; padding:0; } main { padding:22px 17px 36px; } .welcome { grid-template-columns:1fr; } .welcome-art { display:none; } .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .metric:last-child { display:none; } .top { align-items:start; } .source-pill { display:none; } }
+    @media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto!important; transition:none!important; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 17V11M10 17V6M15 17V9M20 17V4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3 20h18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></span><span class="brand-name">AI Trader</span></div>
+      <div class="side-label">Paper workspace</div>
+      <nav class="nav" aria-label="주 메뉴"><button class="active"><span class="nav-icon">◫</span><span class="nav-text">대시보드</span></button><button data-action="strategy"><span class="nav-icon">⌁</span><span class="nav-text">전략 실험실</span></button><button data-action="agents"><span class="nav-icon">✳</span><span class="nav-text">에이전트 리뷰</span></button></nav>
+      <div class="side-label">Workspace</div>
+      <nav class="nav"><button data-action="data"><span class="nav-icon">▤</span><span class="nav-text">시장 데이터</span></button><button data-action="settings"><span class="nav-icon">⚙</span><span class="nav-text">설정</span></button></nav>
+      <div class="aside-bottom"><b>가상 투자 모드</b><br>실제 주문은 연결되지 않습니다.</div>
+    </aside>
+    <main>
+      <header class="top"><div><div class="eyebrow">LOCAL PAPER TRADING</div><h1>전략 대시보드</h1></div><div class="top-actions"><span class="source-pill"><i class="dot" id="source-dot"></i><span id="source-label">데이터 연결 전</span></span><button class="btn secondary" id="settings-open">데이터 설정</button><button class="btn" id="sync-btn">데이터 가져오기</button></div></header>
+      <section class="welcome"><div><h2>가상 계좌를 시장 데이터에 연결하세요</h2><p>종목과 기간만 정하면 과거 5분봉을 자동으로 모아 ORB 전략을 검증합니다. 가상 자금과 체결 비용을 반영해 결과를 확인하세요.</p><div style="display:flex;gap:8px;margin-top:17px"><button class="btn" id="connect-btn">데이터 소스 연결</button><button class="btn secondary" id="demo-btn">화면 예시 보기</button></div></div><div class="welcome-art"><svg viewBox="0 0 100 72" fill="none" aria-hidden="true"><path d="M8 60h84" stroke="currentColor" stroke-opacity=".45" stroke-width="2"/><path d="M18 52V35m0 5h8v9h-8M35 45V20m0 6h8v16h-8M53 52V29m0 4h8v12h-8M71 35V12m0 7h8v13h-8" stroke="#4d91df" stroke-width="3" stroke-linecap="round"/><path d="m11 47 15-5 14-17 13 8 17-17 17-5" stroke="#6758d8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="87" cy="11" r="3.5" fill="#6758d8"/></svg></div></section>
+      <div class="section-head"><h2>가상 계좌 요약</h2><span id="range-label">과거 시세 데이터를 기다리는 중</span></div>
+      <section class="metrics" aria-label="가상 계좌 지표"><div class="metric"><div class="label">최종 잔고</div><div class="value" id="equity">—</div><div class="delta" id="equity-note">가상 초기 자금 $10,000</div></div><div class="metric"><div class="label">누적 손익</div><div class="value" id="pnl">—</div><div class="delta">수수료 · 슬리피지 반영</div></div><div class="metric"><div class="label">최대 낙폭</div><div class="value" id="drawdown">—</div><div class="delta">고점 대비 잔고 하락폭</div></div><div class="metric"><div class="label">승률</div><div class="value" id="winrate">—</div><div class="delta">목표 청산 / 전체 거래</div></div><div class="metric"><div class="label">거래 수</div><div class="value" id="trades-count">—</div><div class="delta">하루 최대 한 번 진입</div></div></section>
+      <section class="grid-main"><article class="card"><div class="card-head"><h3>가상 자산 흐름</h3><span class="card-sub" id="chart-caption">백테스트 실행 후 표시</span></div><div id="chart-empty" class="chart-empty"><div><span class="chart-icon">⌁</span>데이터를 가져오면 잔고 흐름이 여기에 표시됩니다.</div></div><canvas id="equity-chart" hidden aria-label="가상 잔고 흐름"></canvas></article><article class="card"><div class="card-head"><h3>에이전트 검토 팀</h3><span class="badge" id="agent-state">대기</span></div><div class="review-list"><div class="review-row"><span class="agent-icon">⌕</span><span><b>데이터 감사</b><small>누락 · 시간대 · 세션 품질</small></span><span class="badge" id="data-agent">대기</span></div><div class="review-row"><span class="agent-icon">↗</span><span><b>전략 분석가</b><small>과거 손익과 표본 크기</small></span><span class="badge" id="quant-agent">대기</span></div><div class="review-row"><span class="agent-icon">◇</span><span><b>리스크 심사자</b><small>낙폭과 거래 위험 점검</small></span><span class="badge" id="risk-agent">대기</span></div></div><div class="alert">숫자는 Python 계산 결과를 그대로 사용합니다. 검토 에이전트는 결과를 해석하며 주문을 만들지 않습니다.</div></article></section>
+      <section class="card table-card"><div class="table-head"><h3>최근 모의 거래</h3><span class="card-sub" id="trade-caption">아직 실행한 백테스트가 없습니다</span></div><div class="table-empty" id="trade-empty">가격 데이터와 전략 조건을 설정하면 거래 내역이 기록됩니다.</div><div id="trade-table"></div></section>
+      <p class="footnote">가상 백테스트는 과거 자료를 재생한 결과이며 미래 성과를 예측하거나 보장하지 않습니다. 무료 피드의 체결 범위와 데이터 누락이 결과에 영향을 줄 수 있습니다. 이 앱은 실제 브로커 주문 기능이 없습니다.</p>
+    </main>
+  </div>
+  <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title"><section class="modal"><div class="modal-top"><div><h2 id="modal-title">시장 데이터 연결</h2><p>시세만 읽어 옵니다. API 비밀 키는 Mac 키체인에 저장하며 주문 권한은 요청하지 않습니다.</p></div><button class="close" id="modal-close" aria-label="닫기">×</button></div><div class="provider-grid"><button class="provider selected" data-provider="yahoo"><b>Yahoo Finance</b><small>API 키 없이 시작 · 비공식 5분봉<br>최근 60일 범위</small></button><button class="provider" data-provider="alpaca"><b>Alpaca Market Data</b><small>공식 API · 계정 키 필요<br>무료 IEX는 미국 전체 거래량이 아님</small></button></div><div class="field"><label for="symbol">종목 코드</label><input id="symbol" value="AAPL" maxlength="12" autocomplete="off" placeholder="예: AAPL, NVDA"></div><div class="field"><label for="period">조회 기간</label><select id="period"><option value="30">최근 30 거래일</option><option value="60" selected>최근 60 거래일</option><option value="120">최근 120 거래일</option><option value="252">최근 1년</option></select></div><div id="alpaca-fields" hidden><div class="field"><label for="key-id">Alpaca API Key ID</label><input id="key-id" autocomplete="off" spellcheck="false"></div><div class="field"><label for="secret-key">Secret Key</label><input id="secret-key" type="password" autocomplete="new-password"></div><div class="hint">Paper 계정의 데이터 접근 키를 사용하세요. 이 앱은 시세 조회 URL만 사용하고 주문 엔드포인트를 호출하지 않습니다.</div></div><div class="field"><label for="risk">거래당 위험 (%)</label><input id="risk" type="number" min="0.1" max="5" step="0.1" value="0.5"></div><div class="field"><label for="rr">목표 손익비 (R)</label><input id="rr" type="number" min="0.5" max="5" step="0.25" value="1.5"></div><div class="alert" id="provider-note">Yahoo Finance는 비공식 데이터 경로입니다. 연결이 제한되거나 지연될 수 있으며 정밀한 시장 체결 기록과 다를 수 있습니다.</div><div class="modal-actions"><button class="btn secondary" id="test-connection">연결 확인</button><button class="btn" id="save-settings">저장하고 수집</button></div></section></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let provider = "yahoo", state = null, toastTimer;
+    function toast(message) { const el=$('toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),3600); }
+    function openSettings() { $('settings-modal').classList.add('open'); $('symbol').focus(); }
+    function closeSettings() { $('settings-modal').classList.remove('open'); }
+    function setProvider(value) { provider=value; document.querySelectorAll('.provider').forEach(b=>b.classList.toggle('selected',b.dataset.provider===value)); $('alpaca-fields').hidden=value!=='alpaca'; $('provider-note').textContent=value==='yahoo'?'Yahoo Finance는 비공식 데이터 경로입니다. 연결이 제한되거나 지연될 수 있으며 정밀한 시장 체결 기록과 다를 수 있습니다.':'무료 IEX feed는 미국 거래량 전체를 포함하지 않습니다. 전체 시장 SIP feed의 이용 조건은 Alpaca 요금제에 따릅니다.'; }
+    function money(n) { return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:2}).format(n); }
+    function setMetric(id,value,kind='') { const el=$(id); el.textContent=value; el.classList.remove('positive','negative'); if(kind)el.classList.add(kind); }
+    function drawChart(points) { const canvas=$('equity-chart'), ctx=canvas.getContext('2d'), rect=canvas.getBoundingClientRect(), dpr=window.devicePixelRatio||1; if(!points?.length){canvas.hidden=true;$('chart-empty').hidden=false;return;} canvas.hidden=false;$('chart-empty').hidden=true; canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;ctx.scale(dpr,dpr);const w=rect.width,h=rect.height,pad={l:54,r:12,t:16,b:25},values=points.map(p=>p.equity),min=Math.min(...values),max=Math.max(...values),span=max-min||Math.max(max*.02,1);const y=v=>pad.t+(max-v)/span*(h-pad.t-pad.b),x=i=>pad.l+i/(Math.max(points.length-1,1))*(w-pad.l-pad.r);ctx.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--line');ctx.lineWidth=1;ctx.font='10px -apple-system, sans-serif';ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--muted');for(let i=0;i<4;i++){let yy=pad.t+i*(h-pad.t-pad.b)/3;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();let value=max-i*span/3;ctx.fillText('$'+Math.round(value).toLocaleString(),2,yy+3);}const gradient=ctx.createLinearGradient(0,pad.t,0,h);gradient.addColorStop(0,'#287bdf35');gradient.addColorStop(1,'#287bdf00');ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(x(i),y(p.equity)):ctx.moveTo(x(i),y(p.equity)));ctx.lineTo(x(points.length-1),h-pad.b);ctx.lineTo(x(0),h-pad.b);ctx.closePath();ctx.fillStyle=gradient;ctx.fill();ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(x(i),y(p.equity)):ctx.moveTo(x(i),y(p.equity)));ctx.strokeStyle='#1671d9';ctx.lineWidth=2.4;ctx.lineJoin='round';ctx.stroke(); }
+    function render(result) { state=result; $('source-label').textContent=result.data_source||'데이터 연결 전';$('source-dot').classList.toggle('ok',!!result.data_source); if(!result.metrics){$('range-label').textContent=result.data_status||'과거 시세 데이터를 기다리는 중';return;} const m=result.metrics;setMetric('equity',money(m.final_equity));setMetric('pnl',(m.net_pnl>=0?'+':'')+money(m.net_pnl),m.net_pnl>0?'positive':m.net_pnl<0?'negative':'');setMetric('drawdown',m.max_drawdown_pct.toFixed(2)+'%','negative');setMetric('winrate',m.win_rate_pct.toFixed(1)+'%');setMetric('trades-count',m.trades+'회');$('equity-note').textContent=(m.net_return_pct>=0?'+':'')+m.net_return_pct.toFixed(2)+'% · 가상 초기 자금 $10,000';$('range-label').textContent=`${result.symbol} · ${result.start_date} — ${result.end_date} · ${result.bar_count.toLocaleString()}개 봉`;$('chart-caption').textContent=`${result.symbol} 5분봉 · 순손익 ${money(m.net_pnl)}`;drawChart(result.equity);renderTrades(result.trades||[]);renderAgents(result.agent_review||[]); }
+    function renderTrades(trades) { $('trade-empty').hidden=trades.length>0; $('trade-caption').textContent=trades.length?`${trades.length}건 · 수수료 반영`:'아직 실행한 백테스트가 없습니다'; if(!trades.length){$('trade-table').innerHTML='';return;} const rows=trades.slice(-8).reverse().map(t=>`<tr><td>${t.session}</td><td>${t.entry_time}</td><td>${t.symbol||$('symbol').value.toUpperCase()}</td><td>${t.shares}</td><td>${money(t.entry)}</td><td>${money(t.exit)}</td><td>${t.reason}</td><td class="${t.pnl>=0?'pos':'neg'}">${t.pnl>=0?'+':''}${money(t.pnl)}</td></tr>`).join('');$('trade-table').innerHTML=`<div class="table-wrap"><table><thead><tr><th>거래일</th><th>진입 시각</th><th>종목</th><th>수량</th><th>진입가</th><th>청산가</th><th>결과</th><th>손익</th></tr></thead><tbody>${rows}</tbody></table></div>`; }
+    function renderAgents(items) { if(!items.length)return; $('agent-state').textContent='검토 완료';$('agent-state').classList.add('ready'); for(const item of items){const id={data:'data-agent',quant:'quant-agent',risk:'risk-agent'}[item.role];if(id){$(id).textContent=item.status;$(id).classList.toggle('ready',item.status==='양호'||item.status==='검토');}} }
+    async function call(method,...args) { if(!window.pywebview?.api) throw new Error('앱 브리지를 준비 중입니다. 잠시 후 다시 시도해 주세요.');return await window.pywebview.api[method](...args); }
+    async function loadInitial() { try { const result=await call('get_initial_state');$('source-label').textContent=result.data_status; } catch(e) { toast(e.message); } }
+    async function fetchData() { $('sync-btn').disabled=true;$('sync-btn').textContent='가져오는 중…';try{const config={symbol:$('symbol').value.trim().toUpperCase(),provider,period_days:Number($('period').value),risk_pct:Number($('risk').value),reward_risk:Number($('rr').value),key_id:$('key-id').value.trim(),secret_key:$('secret-key').value};const result=await call('fetch_and_backtest',config);if(!result.ok)throw new Error(result.error);render(result);closeSettings();toast(`${result.bar_count.toLocaleString()}개 5분봉을 불러와 분석했습니다.`);}catch(e){toast(e.message||'데이터를 가져오지 못했습니다.');}finally{$('sync-btn').disabled=false;$('sync-btn').textContent='데이터 가져오기';} }
+    async function testConnection() { $('test-connection').disabled=true;$('test-connection').textContent='확인 중…';try{const res=await call('test_connection',provider,$('key-id').value.trim(),$('secret-key').value);toast(res.ok?'데이터 연결이 확인됐습니다.':res.error);}catch(e){toast(e.message);}finally{$('test-connection').disabled=false;$('test-connection').textContent='연결 확인';} }
+    document.querySelectorAll('.provider').forEach(b=>b.addEventListener('click',()=>setProvider(b.dataset.provider)));
+    $('settings-open').onclick=openSettings;$('connect-btn').onclick=openSettings;$('modal-close').onclick=closeSettings;$('save-settings').onclick=fetchData;$('sync-btn').onclick=()=>state?fetchData():openSettings();$('test-connection').onclick=testConnection;
+    $('demo-btn').onclick=async()=>{try{const result=await call('load_demo');render(result);toast('합성 데이터로 화면을 확인하고 있습니다. 실전 성과 자료가 아닙니다.');}catch(e){toast(e.message);}};
+    document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>b.dataset.action==='settings'||b.dataset.action==='data'?openSettings():toast('다음 반복 개선에서 연결됩니다.'));
+    $('settings-modal').addEventListener('click',e=>{if(e.target===$('settings-modal'))closeSettings();});
+    window.addEventListener('resize',()=>{if(state?.equity?.length)drawChart(state.equity);});
+    window.addEventListener('pywebviewready',loadInitial);setTimeout(loadInitial,900);
+  </script>
+  <style>
+    .table-wrap { overflow:auto; } table { width:100%; border-collapse:collapse; white-space:nowrap; font-size:10px; } th { padding:10px 12px; color:var(--muted); font-size:9px; font-weight:600; text-align:right; } td { padding:11px 12px; border-top:1px solid var(--line); text-align:right; } th:first-child,td:first-child { text-align:left; } .pos { color:var(--green); } .neg { color:var(--red); }
+  </style>
+</body>
+</html>
