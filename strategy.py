@@ -15,9 +15,14 @@ class BacktestConfig:
     reward_risk: float = 1.5
     commission_per_share: float = 0.005
     slippage_bps: float = 5
+    market_timezone: str = "America/New_York"
+    session_open: str = "09:30"
+    session_close: str = "16:00"
 
 
-def prepare_bars(frame: pd.DataFrame) -> pd.DataFrame:
+def prepare_bars(
+    frame: pd.DataFrame, market_timezone="America/New_York"
+) -> pd.DataFrame:
     """Validate OHLCV input and normalize timestamps to US Eastern time."""
     missing = REQUIRED_COLUMNS - set(frame.columns.str.lower())
     if missing:
@@ -31,9 +36,9 @@ def prepare_bars(frame: pd.DataFrame) -> pd.DataFrame:
 
     timestamps = bars["timestamp"]
     if timestamps.dt.tz is None:
-        bars["timestamp"] = timestamps.dt.tz_localize("America/New_York")
+        bars["timestamp"] = timestamps.dt.tz_localize(market_timezone)
     else:
-        bars["timestamp"] = timestamps.dt.tz_convert("America/New_York")
+        bars["timestamp"] = timestamps.dt.tz_convert(market_timezone)
 
     for column in ("open", "high", "low", "close", "volume"):
         bars[column] = pd.to_numeric(bars[column], errors="coerce")
@@ -61,7 +66,13 @@ def run_backtest(frame: pd.DataFrame, config: BacktestConfig) -> dict:
     if config.slippage_bps < 0:
         raise ValueError("슬리피지는 음수일 수 없습니다.")
 
-    bars = prepare_bars(frame)
+    bars = prepare_bars(frame, config.market_timezone)
+    open_minute = int(config.session_open[:2]) * 60 + int(config.session_open[3:])
+    close_minute = int(config.session_close[:2]) * 60 + int(config.session_close[3:])
+    local_minute = bars["timestamp"].dt.hour * 60 + bars["timestamp"].dt.minute
+    bars = bars[(local_minute >= open_minute) & (local_minute < close_minute)]
+    if bars.empty:
+        raise ValueError("선택한 기간에 해당 시장의 정규장 데이터가 없습니다.")
     cash = config.initial_cash
     slippage = config.slippage_bps / 10_000
     trades: list[dict] = []
@@ -73,6 +84,17 @@ def run_backtest(frame: pd.DataFrame, config: BacktestConfig) -> dict:
             continue
 
         opening = day.iloc[:3]
+        expected_opening = [
+            pd.Timestamp(config.session_open).hour * 60
+            + pd.Timestamp(config.session_open).minute
+            + 5 * offset
+            for offset in range(3)
+        ]
+        actual_opening = (
+            opening["timestamp"].dt.hour * 60 + opening["timestamp"].dt.minute
+        ).tolist()
+        if actual_opening != expected_opening:
+            continue
         range_high = float(opening["high"].max())
         range_low = float(opening["low"].min())
         stop = (range_high + range_low) / 2

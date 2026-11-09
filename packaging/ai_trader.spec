@@ -4,7 +4,10 @@ ROOT = os.path.dirname(SPECPATH)
 from PyInstaller.utils.hooks import collect_all
 
 
-datas = [(os.path.join(ROOT, "ui/index.html"), "ui")]
+datas = [
+    (os.path.join(ROOT, "ui/index.html"), "ui"),
+    (os.path.join(ROOT, "examples/synthetic_5m.csv"), "examples"),
+]
 binaries = []
 hiddenimports = []
 for package in ("webview", "keyring"):
