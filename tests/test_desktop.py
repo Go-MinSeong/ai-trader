@@ -15,6 +15,12 @@ class DesktopTests(unittest.TestCase):
         self.assertFalse(state["has_data"])
         self.assertEqual(state["data_status"], "데이터 연결 전")
 
+    def test_demo_uses_bundled_synthetic_data(self):
+        result = DesktopAPI().load_demo()
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["data_source"], "합성 예시 데이터")
+        self.assertGreater(result["bar_count"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -67,12 +67,20 @@ class DesktopAPI:
             days = int(config.get("period_days", 30))
             risk_pct = float(config.get("risk_pct", 0.5))
             reward_risk = float(config.get("reward_risk", 1.5))
+            initial_cash = float(
+                config.get("initial_cash", 10_000_000 if market == "KR" else 10_000)
+            )
+            commission_bps = float(config.get("commission_bps", 1))
             if not 1 <= days <= 365:
                 raise ValueError("조회 기간은 1~365일이어야 합니다.")
             if not 0.1 <= risk_pct <= 5:
                 raise ValueError("거래당 위험은 0.1~5% 범위로 설정해 주세요.")
             if not 0.5 <= reward_risk <= 5:
                 raise ValueError("목표 손익비는 0.5~5R 범위로 설정해 주세요.")
+            if initial_cash <= 0 or initial_cash > 1_000_000_000_000:
+                raise ValueError("가상 초기 자금을 확인해 주세요.")
+            if not 0 <= commission_bps <= 100:
+                raise ValueError("편도 수수료는 0~100bp 범위로 설정해 주세요.")
 
             client_id = (config.get("client_id") or "").strip()
             client_secret = config.get("client_secret") or ""
@@ -96,8 +104,10 @@ class DesktopAPI:
             result = run_backtest(
                 five_minute_bars,
                 BacktestConfig(
+                    initial_cash=initial_cash,
                     risk_per_trade_pct=risk_pct,
                     reward_risk=reward_risk,
+                    commission_bps=commission_bps,
                     market_timezone=timezone_name,
                     session_open=session_open,
                     session_close=session_close,
@@ -113,6 +123,7 @@ class DesktopAPI:
                     "ok": True,
                     "symbol": symbol,
                     "market": market,
+                    "currency": "KRW" if market == "KR" else "USD",
                     "data_source": "Toss Open API · 로컬 캐시",
                     "start_date": str(dates.min().date()),
                     "end_date": str(dates.max().date()),
@@ -131,13 +142,14 @@ class DesktopAPI:
         try:
             demo = pd.read_csv(resource_path("examples/synthetic_5m.csv"))
             result = run_backtest(
-                demo, BacktestConfig(slippage_bps=0, commission_per_share=0)
+                demo, BacktestConfig(slippage_bps=0, commission_bps=0)
             )
             return json_safe(
                 {
                     "ok": True,
                     "symbol": "DEMO",
                     "market": "US",
+                    "currency": "USD",
                     "data_source": "합성 예시 데이터",
                     "start_date": str(pd.to_datetime(demo.timestamp).min().date()),
                     "end_date": str(pd.to_datetime(demo.timestamp).max().date()),

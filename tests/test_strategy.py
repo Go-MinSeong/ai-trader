@@ -35,12 +35,27 @@ class StrategyTests(unittest.TestCase):
                 initial_cash=10_000,
                 risk_per_trade_pct=1,
                 reward_risk=1,
-                commission_per_share=0,
+                commission_bps=0,
                 slippage_bps=0,
             ),
         )
         self.assertEqual(result["trades"]["reason"].tolist(), ["목표", "손절"])
         self.assertEqual(result["metrics"]["final_equity"], 10_000)
+
+    def test_percentage_commission_is_charged_on_entry_and_exit(self):
+        result = run_backtest(
+            sample_bars().iloc[:5],
+            BacktestConfig(
+                initial_cash=10_000,
+                risk_per_trade_pct=1,
+                reward_risk=1,
+                commission_bps=10,
+                slippage_bps=0,
+            ),
+        )
+        trade = result["trades"].iloc[0]
+        self.assertGreater(trade.fees, 0)
+        self.assertLess(trade.pnl, (trade.exit - trade.entry) * trade.shares)
 
     def test_rejects_invalid_candle(self):
         bars = sample_bars()

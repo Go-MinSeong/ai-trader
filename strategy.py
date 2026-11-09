@@ -13,7 +13,7 @@ class BacktestConfig:
     initial_cash: float = 10_000
     risk_per_trade_pct: float = 0.5
     reward_risk: float = 1.5
-    commission_per_share: float = 0.005
+    commission_bps: float = 1.0
     slippage_bps: float = 5
     market_timezone: str = "America/New_York"
     session_open: str = "09:30"
@@ -61,12 +61,14 @@ def prepare_bars(
 def run_backtest(frame: pd.DataFrame, config: BacktestConfig) -> dict:
     if config.initial_cash <= 0 or not 0 < config.risk_per_trade_pct <= 100:
         raise ValueError("초기 자금과 거래당 위험 비율을 확인해 주세요.")
-    if config.reward_risk <= 0 or config.commission_per_share < 0:
+    if config.reward_risk <= 0 or config.commission_bps < 0:
         raise ValueError("목표 손익비와 수수료 설정을 확인해 주세요.")
     if config.slippage_bps < 0:
         raise ValueError("슬리피지는 음수일 수 없습니다.")
 
     bars = prepare_bars(frame, config.market_timezone)
+    if "minute_bars" in bars:
+        bars = bars[bars["minute_bars"] == 5].copy()
     open_minute = int(config.session_open[:2]) * 60 + int(config.session_open[3:])
     close_minute = int(config.session_close[:2]) * 60 + int(config.session_close[3:])
     local_minute = bars["timestamp"].dt.hour * 60 + bars["timestamp"].dt.minute
@@ -84,6 +86,8 @@ def run_backtest(frame: pd.DataFrame, config: BacktestConfig) -> dict:
             continue
 
         opening = day.iloc[:3]
+        if "minute_bars" in opening and not (opening["minute_bars"] == 5).all():
+            continue
         expected_opening = [
             pd.Timestamp(config.session_open).hour * 60
             + pd.Timestamp(config.session_open).minute
@@ -108,19 +112,23 @@ def run_backtest(frame: pd.DataFrame, config: BacktestConfig) -> dict:
                 if float(bar.close) <= range_high:
                     continue
                 entry = float(bar.close) * (1 + slippage)
-                risk_per_share = entry - stop
-                if risk_per_share <= 0:
+                price_risk_per_share = entry - stop
+                if price_risk_per_share <= 0:
                     break
+                fee_rate = config.commission_bps / 10_000
+                estimated_loss_per_share = (
+                    price_risk_per_share * (1 + slippage) + (entry + stop) * fee_rate
+                )
                 risk_budget = cash * config.risk_per_trade_pct / 100
                 shares = math.floor(
                     min(
-                        risk_budget / risk_per_share,
-                        cash / (entry + config.commission_per_share),
+                        risk_budget / estimated_loss_per_share,
+                        cash / (entry * (1 + fee_rate)),
                     )
                 )
                 if shares < 1:
                     break
-                target = entry + risk_per_share * config.reward_risk
+                target = entry + price_risk_per_share * config.reward_risk
                 trade = {
                     "session": str(session),
                     "entry_time": bar.timestamp,
@@ -142,7 +150,12 @@ def run_backtest(frame: pd.DataFrame, config: BacktestConfig) -> dict:
                 exit_price, exit_reason = float(bar.close) * (1 - slippage), "장 마감"
 
             if exit_price is not None:
-                fees = trade["shares"] * config.commission_per_share * 2
+                fees = (
+                    trade["shares"]
+                    * (trade["entry"] + exit_price)
+                    * config.commission_bps
+                    / 10_000
+                )
                 pnl = (exit_price - trade["entry"]) * trade["shares"] - fees
                 cash += pnl
                 trades.append(
