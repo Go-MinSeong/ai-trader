@@ -9,7 +9,15 @@ uv sync --dev
 uv run python desktop.py
 ```
 
-Toss Securities WTS에서 개인용 Open API 키를 발급한 뒤, 앱에서 Client ID와 Secret을 입력합니다. API 호출 허용 IP 등록이 필요할 수 있습니다. 연결이 확인되면 자격 증명은 macOS 키체인에 저장됩니다.
+일반 사용자용 앱은 `dist/AI Trader.app`입니다. Finder에서 이 앱을 열거나 다음 명령으로 바로 실행할 수 있습니다.
+
+```bash
+open "dist/AI Trader.app"
+```
+
+앱을 열면 합성 데이터 데모가 자동으로 표시됩니다. 실시간 시세 수집은 인터넷 연결과 Toss Open API 자격 증명이 필요하며, 키를 준비한 뒤 `데이터 설정`에서 연결합니다.
+
+Toss Securities WTS에서 개인용 [Open API](https://developers.tossinvest.com/docs) 키를 발급한 뒤, 앱에서 Client ID와 Secret을 입력합니다. API 호출 허용 IP 등록이 필요할 수 있습니다. 연결이 확인되면 자격 증명은 macOS 키체인에 저장됩니다.
 
 패키징된 앱은 다음으로 빌드합니다.
 
