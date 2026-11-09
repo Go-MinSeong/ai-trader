@@ -12,6 +12,7 @@ import webview
 from storage import BarStore
 from strategy import BacktestConfig, run_backtest
 from toss_market import TossMarketClient, aggregate_to_five_minutes, validate_symbol
+from worldmonitor import WorldMonitorClient
 
 SERVICE_NAME = "AI Trader"
 
@@ -55,6 +56,23 @@ class DesktopAPI:
             TossMarketClient(client_id, client_secret).test_connection()
             self._save_credentials(client_id, client_secret)
             return {"ok": True}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+    def test_worldmonitor_connection(self, api_key: str) -> dict:
+        try:
+            WorldMonitorClient(api_key).test_connection()
+            keyring.set_password(SERVICE_NAME, "worldmonitor_api_key", api_key.strip())
+            return {"ok": True}
+        except Exception as exc:
+            return {"ok": False, "error": str(exc)}
+
+    def get_worldmonitor_context(self, symbol: str) -> dict:
+        try:
+            symbol = validate_symbol(symbol)
+            api_key = keyring.get_password(SERVICE_NAME, "worldmonitor_api_key") or ""
+            result = WorldMonitorClient(api_key).get_news_context(symbol)
+            return {"ok": True, **result}
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
 
