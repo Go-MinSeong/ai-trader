@@ -46,7 +46,7 @@ class TossMarketClient:
         url = BASE_URL + path
         if params:
             url += "?" + urllib.parse.urlencode(params)
-        headers = {"Accept": "application/json", "User-Agent": "AI-Trader/0.3"}
+        headers = {"Accept": "application/json", "User-Agent": "AI-Trader/0.4"}
         if body is not None:
             headers["Content-Type"] = "application/x-www-form-urlencoded"
         if token:

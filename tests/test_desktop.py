@@ -10,11 +10,32 @@ class DesktopTests(unittest.TestCase):
         self.assertIn("window.pywebview.api", page)
         self.assertIn("데이터 연결", page)
         self.assertNotIn('<script src="https://', page)
+        settings = page.split('id="settings-modal"', 1)[1].split(
+            'id="connection-modal"', 1
+        )[0]
+        self.assertNotIn("Client Secret", settings)
+        self.assertNotIn(
+            "client_secret:",
+            page.split("async function fetchData", 1)[1].split(
+                "async function testWorldMonitor", 1
+            )[0],
+        )
 
     def test_initial_state_needs_no_network_or_server(self):
         state = DesktopAPI().get_initial_state()
         self.assertFalse(state["has_data"])
         self.assertEqual(state["data_status"], "데이터 연결 전")
+
+    @patch("desktop.keyring.get_password")
+    def test_initial_state_reports_saved_connections(self, get_password):
+        get_password.side_effect = lambda service, name: {
+            "toss_client_id": "saved-id",
+            "toss_client_secret": "saved-secret",
+            "worldmonitor_api_key": None,
+        }[name]
+        state = DesktopAPI().get_initial_state()
+        self.assertTrue(state["has_toss_credentials"])
+        self.assertFalse(state["has_worldmonitor_credentials"])
 
     def test_demo_uses_bundled_synthetic_data(self):
         result = DesktopAPI().load_demo()

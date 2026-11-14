@@ -47,8 +47,8 @@ app = BUNDLE(
     bundle_identifier="com.go-minseong.aitrader",
     info_plist={
         "CFBundleDisplayName": "AI Trader",
-        "CFBundleShortVersionString": "0.3.0",
-        "CFBundleVersion": "0.3.0",
+        "CFBundleShortVersionString": "0.4.0",
+        "CFBundleVersion": "0.4.0",
         "LSMinimumSystemVersion": "12.0",
         "LSUIElement": False,
         "NSHighResolutionCapable": True,

@@ -42,13 +42,16 @@ class DesktopAPI:
     def get_initial_state(self) -> dict:
         return {
             "app_name": "AI Trader",
-            "version": "0.3.0",
+            "version": "0.4.0",
             "data_source": None,
             "has_data": False,
             "data_status": "데이터 연결 전",
             "has_toss_credentials": bool(
                 keyring.get_password(SERVICE_NAME, "toss_client_id")
                 and keyring.get_password(SERVICE_NAME, "toss_client_secret")
+            ),
+            "has_worldmonitor_credentials": bool(
+                keyring.get_password(SERVICE_NAME, "worldmonitor_api_key")
             ),
             "trades": [],
             "metrics": None,
@@ -74,8 +77,13 @@ class DesktopAPI:
 
     def test_worldmonitor_connection(self, api_key: str) -> dict:
         try:
+            api_key = (
+                (api_key or "").strip()
+                or keyring.get_password(SERVICE_NAME, "worldmonitor_api_key")
+                or ""
+            )
             WorldMonitorClient(api_key).test_connection()
-            keyring.set_password(SERVICE_NAME, "worldmonitor_api_key", api_key.strip())
+            keyring.set_password(SERVICE_NAME, "worldmonitor_api_key", api_key)
             return {"ok": True}
         except Exception as exc:
             return {"ok": False, "error": str(exc)}
