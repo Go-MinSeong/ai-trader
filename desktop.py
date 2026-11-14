@@ -46,12 +46,26 @@ class DesktopAPI:
             "data_source": None,
             "has_data": False,
             "data_status": "데이터 연결 전",
+            "has_toss_credentials": bool(
+                keyring.get_password(SERVICE_NAME, "toss_client_id")
+                and keyring.get_password(SERVICE_NAME, "toss_client_secret")
+            ),
             "trades": [],
             "metrics": None,
         }
 
     def test_connection(self, client_id: str, client_secret: str) -> dict:
         try:
+            client_id = (
+                (client_id or "").strip()
+                or keyring.get_password(SERVICE_NAME, "toss_client_id")
+                or ""
+            )
+            client_secret = (
+                client_secret
+                or keyring.get_password(SERVICE_NAME, "toss_client_secret")
+                or ""
+            )
             TossMarketClient(client_id, client_secret).test_connection()
             self._save_credentials(client_id, client_secret)
             return {"ok": True}
