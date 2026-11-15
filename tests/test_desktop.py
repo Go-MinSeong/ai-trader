@@ -20,6 +20,7 @@ class DesktopTests(unittest.TestCase):
                 "async function testWorldMonitor", 1
             )[0],
         )
+        self.assertIn("키 저장됨", page)
 
     def test_initial_state_needs_no_network_or_server(self):
         state = DesktopAPI().get_initial_state()

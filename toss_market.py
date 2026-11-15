@@ -46,7 +46,7 @@ class TossMarketClient:
         url = BASE_URL + path
         if params:
             url += "?" + urllib.parse.urlencode(params)
-        headers = {"Accept": "application/json", "User-Agent": "AI-Trader/0.4"}
+        headers = {"Accept": "application/json", "User-Agent": "AI-Trader/0.4.1"}
         if body is not None:
             headers["Content-Type"] = "application/x-www-form-urlencoded"
         if token:
@@ -79,9 +79,13 @@ class TossMarketClient:
                         delay = 1
                     self.sleeper(delay)
                     continue
-                if status in (401, 403):
+                if status == 401:
                     raise TossAPIError(
-                        "Toss 인증에 실패했습니다. 키가 유효한지, 호출 허용 IP가 등록됐는지 확인해 주세요."
+                        "Toss 인증이 거부됐습니다. Client ID와 Secret이 맞는지, API 클라이언트가 활성 상태인지 확인해 주세요."
+                    ) from None
+                if status == 403:
+                    raise TossAPIError(
+                        "Toss가 현재 네트워크를 차단했습니다 (HTTP 403). WTS > Open API > 허용 IP 관리에 현재 공인 IP를 등록해 주세요. VPN이나 네트워크 변경 후에도 이 오류가 날 수 있습니다."
                     ) from None
                 if status == 404:
                     raise TossAPIError(

@@ -15,9 +15,11 @@ uv run python desktop.py
 open "dist/AI Trader.app"
 ```
 
-앱을 열면 합성 데이터 데모가 자동으로 표시됩니다. 실시간 시세 수집은 인터넷 연결과 Toss Open API 자격 증명이 필요하며, 키를 준비한 뒤 `데이터 설정`에서 연결합니다.
+앱을 열면 합성 데이터 데모가 자동으로 표시됩니다. 실시간 시세 수집은 인터넷 연결과 Toss Open API 자격 증명이 필요하며, 키를 준비한 뒤 `연결 관리`에서 연결합니다.
 
 종목 수집과 인증은 분리되어 있습니다. Toss Securities WTS에서 개인용 [Open API](https://developers.tossinvest.com/docs) 키를 발급한 뒤, `연결 관리`에서 한 번 확인하면 Client ID와 Secret을 macOS 키체인에 저장합니다. 이후에는 `수집 설정`에서 시장·종목·기간만 골라 수집합니다. 새 키로 바꾸려면 연결 관리에서 `키 변경`을 선택합니다. API 호출 허용 IP 등록이 필요할 수 있습니다.
+
+연결 확인에서 HTTP 403이 나오면 WTS의 Open API 허용 IP 목록에 현재 공인 IP를 등록하세요. 네트워크나 VPN을 바꾸면 공인 IP도 달라질 수 있습니다. HTTP 401은 Client ID·Secret 또는 클라이언트 활성 상태를 확인하세요. [Toss 인증 문서](https://developers.tossinvest.com/docs/auth)
 
 패키징된 앱은 다음으로 빌드합니다.
 

@@ -1,11 +1,19 @@
+import io
 import tempfile
 import unittest
+import urllib.error
+from email.message import Message
 from pathlib import Path
 
 import pandas as pd
 
 from storage import BarStore
-from toss_market import aggregate_to_five_minutes, validate_symbol
+from toss_market import (
+    TossAPIError,
+    TossMarketClient,
+    aggregate_to_five_minutes,
+    validate_symbol,
+)
 
 
 class MarketDataTests(unittest.TestCase):
@@ -13,6 +21,26 @@ class MarketDataTests(unittest.TestCase):
         self.assertEqual(validate_symbol(" aapl "), "AAPL")
         with self.assertRaises(ValueError):
             validate_symbol("AAPL/../../secret")
+
+    def test_http_403_explains_toss_ip_allowlist(self):
+        def forbidden(request, timeout):
+            raise urllib.error.HTTPError(
+                request.full_url, 403, "Forbidden", Message(), io.BytesIO(b"")
+            )
+
+        client = TossMarketClient("client-id", "secret", opener=forbidden)
+        with self.assertRaisesRegex(TossAPIError, "허용 IP 관리"):
+            client._request_json("/oauth2/token")
+
+    def test_http_401_explains_client_credentials(self):
+        def unauthorized(request, timeout):
+            raise urllib.error.HTTPError(
+                request.full_url, 401, "Unauthorized", Message(), io.BytesIO(b"")
+            )
+
+        client = TossMarketClient("client-id", "secret", opener=unauthorized)
+        with self.assertRaisesRegex(TossAPIError, "Client ID와 Secret"):
+            client._request_json("/oauth2/token")
 
     def test_aggregation_ignores_premarket_and_preserves_partial_bar_count(self):
         timestamps = pd.date_range("2026-01-05 14:28", periods=8, freq="min", tz="UTC")

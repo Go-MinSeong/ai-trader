@@ -42,7 +42,7 @@ class DesktopAPI:
     def get_initial_state(self) -> dict:
         return {
             "app_name": "AI Trader",
-            "version": "0.4.0",
+            "version": "0.4.1",
             "data_source": None,
             "has_data": False,
             "data_status": "데이터 연결 전",
